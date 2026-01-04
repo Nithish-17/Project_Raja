@@ -1,10 +1,18 @@
-"""Database package initialization"""
-from .models import Certificate, ExtractedEntities
-from .dummy_db import db, DummyDatabase
+"""Database package initialization for ORM models"""
+from .models_orm import (
+    Base,
+    Certificate,
+    ExtractedEntity,
+    VerificationResult,
+    VerificationLog,
+    ReferenceCertificate,
+)
 
 __all__ = [
+    "Base",
     "Certificate",
-    "ExtractedEntities",
-    "db",
-    "DummyDatabase",
+    "ExtractedEntity",
+    "VerificationResult",
+    "VerificationLog",
+    "ReferenceCertificate",
 ]

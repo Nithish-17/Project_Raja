@@ -51,6 +51,28 @@ class Certificate(Base):
         return f"<Certificate(id={self.certificate_id}, filename={self.filename})>"
 
 
+class ReferenceCertificate(Base):
+    """Trusted/reference certificate records used for verification"""
+    __tablename__ = "reference_certificates"
+
+    id = Column(Integer, primary_key=True)
+    person_name = Column(String(255), nullable=False)
+    organization = Column(String(255), nullable=False)
+    certificate_title = Column(String(255), nullable=False)
+    issue_date = Column(String(50), nullable=True)
+    registration_number = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            "person_name": self.person_name,
+            "organization": self.organization,
+            "certificate_title": self.certificate_title,
+            "issue_date": self.issue_date,
+            "registration_number": self.registration_number,
+        }
+
+
 class ExtractedEntity(Base):
     """Extracted entity model"""
     __tablename__ = "extracted_entities"

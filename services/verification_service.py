@@ -7,7 +7,6 @@ from datetime import datetime
 
 from ocr import ocr_service
 from ner import ner_service
-from database import db
 from services.email_service import email_service
 from utils import get_logger
 
@@ -79,9 +78,6 @@ class VerificationService:
                 "verified_timestamp": None
             }
             
-            db.add_certificate(certificate_id, certificate_data)
-            logger.info(f"Certificate {certificate_id} processed and stored")
-            
             return certificate_data
             
         except Exception as e:
@@ -98,52 +94,7 @@ class VerificationService:
         Returns:
             Dictionary with verification results
         """
-        try:
-            # Get certificate from database
-            certificate = db.get_certificate(certificate_id)
-            if not certificate:
-                raise ValueError(f"Certificate {certificate_id} not found")
-            
-            # Get entities
-            entities = certificate.get("entities", {})
-            
-            # Verify against dummy database
-            logger.info(f"Verifying certificate {certificate_id}")
-            verification_status = db.verify_certificate(entities)
-            
-            # Update certificate with verification status
-            db.update_certificate_verification(
-                certificate_id,
-                verification_status,
-                entities
-            )
-            
-            # Update timestamp
-            certificate["verification_status"] = verification_status
-            certificate["verified_timestamp"] = datetime.now()
-            
-            # Send email alert
-            logger.info(f"Sending verification alert for {certificate_id}")
-            email_sent = email_service.send_verification_alert(
-                certificate_id,
-                entities,
-                verification_status
-            )
-            
-            result = {
-                "certificate_id": certificate_id,
-                "verification_status": verification_status,
-                "entities": entities,
-                "verified_timestamp": certificate["verified_timestamp"],
-                "email_sent": email_sent
-            }
-            
-            logger.info(f"Certificate {certificate_id} verified: {verification_status}")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error verifying certificate {certificate_id}: {str(e)}")
-            raise
+        raise NotImplementedError("verify_certificate is handled by routes_v2 using the reference database")
 
 
 # Global verification service instance

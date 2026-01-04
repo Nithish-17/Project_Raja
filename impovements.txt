@@ -1,108 +1,90 @@
-You are a senior backend engineer specializing in OCR pipelines and document intelligence.
+You are a senior backend engineer finalizing a Certificate Verification System
+built using FastAPI, SQLAlchemy, PostgreSQL, OCR, and NLP.
 
-The current Certificate Verification project has the following issues:
-- OCR works inconsistently for image-based PDFs (e.g., hackathon certificates)
-- OCR text is sometimes empty or not propagated downstream
-- File size is shown as N/A in the UI
-- OCR confidence is always N/A
-- Preprocessing exists but is not always applied
-- NER receives empty text, resulting in N/A entities
+Current state:
+- The project contains both legacy (dummy DB, in-memory) APIs and enhanced (v2) APIs.
+- The dummy database and legacy routes were used only for early testing.
+- The final system must use ONLY ONE real database via SQLAlchemy.
+- Uploaded certificates, extracted entities, and verification results must all be persisted.
+- Verification must be meaningful and demonstrable.
 
-Your task is to FIX THE ENTIRE OCR PIPELINE END-TO-END without changing
-API contracts or database schemas.
-
-────────────────────────────────────────
-1. FILE HANDLING & METADATA (MANDATORY)
-────────────────────────────────────────
-- When a file is uploaded:
-  - Save it locally
-  - Compute file size in bytes using os.path.getsize()
-  - Pass file size through the service layer to the API response
+Your task is to REFINE and FINALIZE the system.
 
 ────────────────────────────────────────
-2. PDF TEXT EXTRACTION LOGIC (CRITICAL)
+1. REMOVE LEGACY / DUMMY DATABASE LOGIC
 ────────────────────────────────────────
-- For PDF files:
-  1. Attempt direct text extraction (PyPDF2 or similar)
-  2. If extracted text is empty or whitespace:
-     - Convert the PDF to images using pdf2image
-     - Use DPI = 300 or higher
-     - Treat it as an image-based PDF
-  3. OCR MUST run for image-based PDFs (no silent skipping)
+- Completely remove or disable:
+  - dummy_db.py
+  - legacy routes using in-memory storage
+- Ensure NO part of the application reads or writes to a dummy or in-memory database.
+- Keep only database-backed logic using SQLAlchemy and DATABASE_URL.
 
 ────────────────────────────────────────
-3. IMAGE PREPROCESSING (MANDATORY)
+2. SINGLE, CLEAR API FLOW
 ────────────────────────────────────────
-Before OCR, ALWAYS preprocess images:
-- Convert to grayscale
-- Apply adaptive thresholding
-- Increase contrast
-- Optional deskew
-Use OpenCV if available; otherwise fallback gracefully.
+Ensure the system follows ONE clear flow:
 
-Ensure the OCR call uses the PREPROCESSED image, not the original.
+UPLOAD → OCR → ENTITY EXTRACTION → STORE IN DB → VERIFY → STORE RESULT
 
-────────────────────────────────────────
-4. OCR EXECUTION (MANDATORY)
-────────────────────────────────────────
-- Explicitly configure pytesseract to use the local Tesseract executable
-  on Windows (e.g., C:\\Program Files\\Tesseract-OCR\\tesseract.exe)
-- Use pytesseract.image_to_string() to extract text
-- Accumulate text across all pages/images
-- NEVER return empty string unless OCR truly failed
+- Upload endpoint must:
+  - Save file
+  - Run OCR
+  - Extract entities
+  - Persist all results to the database
 
-Add logs:
-- OCR text length
-- First 200 characters of OCR output
+- Verify endpoint must:
+  - Read uploaded certificate data from the database
+  - Compare it against trusted/reference certificate records
+  - Compute a confidence score
+  - Persist verification results
 
 ────────────────────────────────────────
-5. OCR CONFIDENCE CALCULATION (FIX N/A)
+3. REFERENCE (TRUSTED) CERTIFICATES
 ────────────────────────────────────────
-- Compute OCR confidence using pytesseract.image_to_data()
-- Extract confidence values
-- Compute average confidence
-- Return confidence as a float (or None if unavailable)
+- Use the SAME database to store trusted/reference certificates.
+- These represent issuing authority records.
+- Reference certificates must NOT be created automatically from uploads.
+
+- On application startup:
+  - Check if reference certificates exist
+  - If none exist, seed 2–3 demo reference certificates
+  - Ensure seeding is idempotent (runs only once)
 
 ────────────────────────────────────────
-6. RETURN VALUES (CRITICAL BUG FIX)
+4. VERIFICATION LOGIC CLARITY
 ────────────────────────────────────────
-Ensure the OCR function returns:
-{
-  "text": extracted_text (string),
-  "ocr_confidence": float or None,
-  "file_size": int
-}
+- Verification must compare uploaded certificates ONLY against reference certificates.
+- If a strong match is found:
+  - status = VERIFIED
+  - confidence_score = percentage (0–100)
+- If no match is found:
+  - status = NOT VERIFIED
+  - confidence_score = 0
 
-DO NOT:
-- Log and discard OCR text
-- Return None silently
-- Skip fallback paths
+- confidence_score must NEVER be undefined or null.
 
 ────────────────────────────────────────
-7. ERROR HANDLING & LOGGING
+5. DATABASE CONSISTENCY
 ────────────────────────────────────────
-- Log when OCR fallback is triggered
-- Log when OCR returns empty text
-- Raise meaningful warnings instead of failing silently
+- Ensure all uploaded certificates are inserted into the database.
+- Ensure extracted entities are stored.
+- Ensure verification results are stored.
+- Ensure tables are populated when v2 endpoints are used.
 
 ────────────────────────────────────────
-8. INTEGRATION REQUIREMENTS
+6. FINAL EXPECTED BEHAVIOR
 ────────────────────────────────────────
-- Ensure returned OCR text flows correctly to:
-  → ner_service.py
-  → verification_service.py
-  → API response
-  → UI (no more N/A due to missing propagation)
-- Do NOT change existing API response keys
+- Uploading a certificate always inserts data into the DB.
+- Database tables are never empty after uploads.
+- Verification can return VERIFIED or NOT VERIFIED.
+- Same certificate uploaded multiple times is treated as multiple submissions.
+- The system is easy to explain and demo.
 
-────────────────────────────────────────
-9. EXPECTED OUTCOME
-────────────────────────────────────────
-After this fix:
-- Image-based certificates must no longer show N/A
-- File Size must display correctly
-- OCR Confidence must display when available
-- NER must receive valid text input
-- Hackathon-style certificates must extract text
+Do NOT:
+- Reintroduce dummy databases
+- Add a second database
+- Auto-trust uploaded certificates
+- Change API URLs unnecessarily
 
-Generate clean, production-quality, well-commented Python code.
+Generate clean, well-commented, production-quality Python code
+that fits the existing project structure.

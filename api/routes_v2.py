@@ -14,7 +14,13 @@ from services.email_service import email_service
 from services.security_validator import security_validator
 from services.intelligent_verification import verification_engine
 from database.connection import get_db
-from database.models_orm import Certificate, ExtractedEntity, VerificationResult, VerificationLog
+from database.models_orm import (
+    Certificate,
+    ExtractedEntity,
+    VerificationResult,
+    VerificationLog,
+    ReferenceCertificate,
+)
 from core.rate_limiting import rate_limiter
 from core.celery_app import celery_app
 from utils import get_logger, cache
@@ -173,9 +179,13 @@ async def verify_certificate(
         if not entity_db:
             raise HTTPException(status_code=404, detail="Entities not found")
         
-        # Perform intelligent verification
+        # Load trusted/reference certificates from the database
+        reference_records = db.query(ReferenceCertificate).all()
+        reference_payload = [rec.to_dict() for rec in reference_records]
+
+        # Perform intelligent verification against reference set
         entity_dict = entity_db.to_dict()
-        verification_result = verification_engine.verify(entity_dict)
+        verification_result = verification_engine.verify(entity_dict, reference_payload)
         
         # Store verification result
         result_db = VerificationResult(

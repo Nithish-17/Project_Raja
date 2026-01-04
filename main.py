@@ -9,9 +9,10 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from api import router
 from api.routes_v2 import router as router_v2
 from utils import get_logger, settings
+from database.connection import db_manager
+from services.reference_seeder import seed_reference_certificates
 
 
 logger = get_logger("main")
@@ -32,6 +33,9 @@ async def lifespan(app: FastAPI):
     Path("data").mkdir(exist_ok=True)
     Path("logs").mkdir(exist_ok=True)
     Path("frontend").mkdir(exist_ok=True)
+
+    # Seed reference certificates once
+    seed_reference_certificates(db_manager.get_session)
     
     yield
     
@@ -56,9 +60,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
-app.include_router(router, prefix="/api", tags=["certificates"])
-app.include_router(router_v2, prefix="/api", tags=["enhanced"])
+# Include only enhanced API routes (single authoritative flow)
+app.include_router(router_v2, prefix="/api", tags=["certificates"])
 
 # Mount frontend static files
 frontend_path = Path("frontend")

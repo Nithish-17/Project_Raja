@@ -29,48 +29,12 @@ class IntelligentVerificationEngine:
     
     def __init__(self):
         """Initialize verification engine"""
-        self.valid_certificates = [
-            {
-                "person_name": "John Smith",
-                "organization": "Stanford University",
-                "certificate_title": "Machine Learning Specialization",
-                "issue_date": "2023-06-15",
-                "registration_number": "ML-2023-001234"
-            },
-            {
-                "person_name": "Jane Doe",
-                "organization": "MIT",
-                "certificate_title": "Data Science Certificate",
-                "issue_date": "2023-08-20",
-                "registration_number": "DS-2023-005678"
-            },
-            {
-                "person_name": "Alice Johnson",
-                "organization": "Harvard University",
-                "certificate_title": "Python Programming Certificate",
-                "issue_date": "2023-09-10",
-                "registration_number": "PY-2023-009012"
-            },
-            {
-                "person_name": "Bob Williams",
-                "organization": "Google",
-                "certificate_title": "Cloud Architecture Certificate",
-                "issue_date": "2023-07-25",
-                "registration_number": "GCP-2023-003456"
-            },
-            {
-                "person_name": "Carol Martinez",
-                "organization": "IBM",
-                "certificate_title": "AI Engineering Certificate",
-                "issue_date": "2023-10-05",
-                "registration_number": "AI-2023-007890"
-            },
-        ]
         logger.info("Intelligent Verification Engine initialized")
     
     def verify(
         self,
-        extracted_entities: Dict[str, Optional[str]]
+        extracted_entities: Dict[str, Optional[str]],
+        reference_certificates: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
         Verify certificate with fuzzy matching and confidence scoring
@@ -89,8 +53,8 @@ class IntelligentVerificationEngine:
                     reason="No extractable entities found"
                 )
             
-            # Find best matching certificate
-            best_match = self._find_best_match(extracted_entities)
+            # Find best matching certificate from trusted/reference set
+            best_match = self._find_best_match(extracted_entities, reference_certificates)
             
             if best_match["overall_score"] == 0:
                 return self._create_result(
@@ -134,7 +98,8 @@ class IntelligentVerificationEngine:
     
     def _find_best_match(
         self,
-        extracted_entities: Dict[str, Optional[str]]
+        extracted_entities: Dict[str, Optional[str]],
+        reference_certificates: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Find the best matching certificate from database"""
         best_score = 0.0
@@ -142,7 +107,7 @@ class IntelligentVerificationEngine:
         best_scores = {}
         best_mismatches = {}
         
-        for valid_cert in self.valid_certificates:
+        for valid_cert in reference_certificates:
             # Calculate weighted scores for each field
             field_scores = self._calculate_field_scores(extracted_entities, valid_cert)
             overall_score = self._calculate_overall_score(field_scores)
