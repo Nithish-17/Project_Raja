@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover, .tab-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        /* Main Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card Layout */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-selected {
+            margin-top: 10px;
+            color: #444;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Buttons */
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* Progress */
+        .progress-bar {
+            background: #f0f0f0;
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Results */
+        .result-box {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .badge-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-not-verified {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-pending {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Confidence Score */
+        .score-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .score-label {
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* Statistics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9ff;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .upload-area {
+                padding: 25px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎓 Certificate Verification System</h1>
+            <p class="tagline">Advanced AI-powered certificate verification with fuzzy matching</p>
+        </header>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('upload')">📤 Upload</button>
+            <button class="tab-btn" onclick="switchTab('verify')">✓ Verify</button>
+            <button class="tab-btn" onclick="switchTab('search')">🔍 Search</button>
+            <button class="tab-btn" onclick="switchTab('stats')">📊 Statistics</button>
+        </div>
+
+        <!-- Tab 1: Upload -->
+        <div id="upload" class="tab-content active">
+            <div class="card">
+                <h2>Upload Certificate</h2>
+                <p>Upload any certificate file (PDF, JPG, PNG, DOCX) for verification</p>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Click or drag files here</div>
+                    <div class="upload-subtext">Supported formats: PDF, JPG, PNG, DOCX (Max 100MB)</div>
+                    <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.docx,.doc">
+                    <div id="selectedFileName" class="upload-selected">No file selected</div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button onclick="uploadFile()">Upload File</button>
+                    <button class="btn-secondary" onclick="clearUpload()">Clear</button>
+                </div>
+
+                <div id="uploadProgress" style="display: none; margin-top: 20px;">
+                    <p>Uploading and processing...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="spinner"></div>
+                </div>
+
+                <div id="uploadResult" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Verify -->
+        <div id="verify" class="tab-content">
+            <div class="card">
+                <h2>Verify Certificate</h2>
+                <p>Verify an uploaded certificate using AI-powered fuzzy matching</p>
+                
+                <div style="margin: 20px 0;">
+                    <label for="certIdInput">Certificate ID:</label>
+                    <input type="text" id="certIdInput" placeholder="Enter certificate ID" style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        margin-top: 10px;
+                    ">
+                </div>
+
+                <button onclick="verifyCertificate()">Verify Certificate</button>
+                <button class="btn-secondary" onclick="clearVerify()">Clear</button>
+
+                <div id="verifyProgress" style="display: none; margin-top: 20px;">
+                    <p>Verifying certificate...</p>
+                    <div class="spinner"></div>
+                </div>
+
+                <div id="verifyResult" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Search -->
+        <div id="search" class="tab-content">
+            <div class="card">
+                <h2>Search Certificates</h2>
+                <p>Search and filter certificates by various criteria</p>
+                
+                <div style="margin: 20px 0;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="searchStatus">Verification Status:</label>
+                        <select id="searchStatus" style="
+                            width: 100%;
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                            border-radius: 5px;
+                            margin-top: 5px;
+                        ">
+                            <option value="">All</option>
+                            <option value="VERIFIED">Verified</option>
+                            <option value="PARTIALLY_VERIFIED">Partially Verified</option>
+                            <option value="NOT_VERIFIED">Not Verified</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="searchFilename">Filename:</label>
+                        <input type="text" id="searchFilename" placeholder="Search by filename" style="
+                            width: 100%;
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                            border-radius: 5px;
+                            margin-top: 5px;
+                        ">
+                    </div>
+                </div>
+
+                <button onclick="searchCertificates()">Search</button>
+                <button class="btn-secondary" onclick="clearSearch()">Clear</button>
+
+                <div id="searchResults" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Statistics -->
+        <div id="stats" class="tab-content">
+            <div class="card">
+                <h2>System Statistics</h2>
+                <p>Overview of certificate verification metrics</p>
+                
+                <button onclick="loadStatistics()">Refresh Statistics</button>
+
+                <div id="statsContainer" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Alert System
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} active`;
+            alert.innerHTML = `
+                <strong>${type.toUpperCase()}:</strong> ${message}
+                <span style="float: right; cursor: pointer;" onclick="this.parentElement.remove()">×</span>
+            `;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Upload Functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateSelectedFile(fileInput.files[0]);
+        });
+
+        fileInput.addEventListener('change', () => {
+            updateSelectedFile(fileInput.files[0]);
+        });
+
+        function updateSelectedFile(file) {
+            const target = document.getElementById('selectedFileName');
+            if (!target) return;
+            if (file) {
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                target.textContent = `Selected: ${file.name} (${sizeMb} MB)`;
+            } else {
+                target.textContent = 'No file selected';
+            }
+        }
+
+        async function uploadFile() {
+            const file = fileInput.files[0];
+            if (!file) {
+                showAlert('Please select a file', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const progressDiv = document.getElementById('uploadProgress');
+            const resultDiv = document.getElementById('uploadResult');
+            progressDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+
+                progressDiv.style.display = 'none';
+                displayUploadResult(data);
+                showAlert('Certificate uploaded successfully!', 'success');
+            } catch (error) {
+                progressDiv.style.display = 'none';
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function displayUploadResult(data) {
+            const resultDiv = document.getElementById('uploadResult');
+            resultDiv.innerHTML = `
+                <div class="score-box">
+                    <div class="result-label">Certificate ID</div>
+                    <div class="result-value">${data.certificate_id}</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">File Information</div>
+                    <div class="result-value">
+                        <strong>Filename:</strong> ${data.filename || 'N/A'}<br>
+                        <strong>File Size:</strong> ${typeof data.file_size === 'number' ? (data.file_size / 1024).toFixed(2) + ' KB' : 'N/A'}<br>
+                        <strong>OCR Confidence:</strong> ${typeof data.ocr_confidence === 'number' ? data.ocr_confidence.toFixed(2) + '%' : 'N/A'}
+                    </div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Extracted Entities</div>
+                    <div class="result-value">
+                        <strong>Person Name:</strong> ${data.extracted_entities?.person_name || 'N/A'}<br>
+                        <strong>Organization:</strong> ${data.extracted_entities?.organization || 'N/A'}<br>
+                        <strong>Certificate Title:</strong> ${data.extracted_entities?.certificate_title || 'N/A'}<br>
+                        <strong>Issue Date:</strong> ${data.extracted_entities?.issue_date || 'N/A'}
+                    </div>
+                </div>
+                <button onclick="copyToClipboard('${data.certificate_id}')">Copy Certificate ID</button>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        function clearUpload() {
+            fileInput.value = '';
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('uploadResult').style.display = 'none';
+        }
+
+        // Verify Functionality
+        async function verifyCertificate() {
+            const certId = document.getElementById('certIdInput').value;
+            if (!certId) {
+                showAlert('Please enter a certificate ID', 'error');
+                return;
+            }
+
+            const progressDiv = document.getElementById('verifyProgress');
+            const resultDiv = document.getElementById('verifyResult');
+            progressDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/verify/${certId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Verification failed');
+                }
+
+                progressDiv.style.display = 'none';
+                displayVerifyResult(data);
+                showAlert('Certificate verified successfully!', 'success');
+            } catch (error) {
+                progressDiv.style.display = 'none';
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function displayVerifyResult(data) {
+            const statusBadge = data.verification_status === 'VERIFIED' 
+                ? `<span class="badge badge-verified">${data.verification_status}</span>`
+                : data.verification_status === 'PARTIALLY_VERIFIED'
+                ? `<span class="badge badge-partial">${data.verification_status}</span>`
+                : `<span class="badge badge-not-verified">${data.verification_status}</span>`;
+
+            const resultDiv = document.getElementById('verifyResult');
+            resultDiv.innerHTML = `
+                <div class="score-box">
+                    <div class="result-label">Verification Status</div>
+                    ${statusBadge}
+                </div>
+                <div class="score-box">
+                    <div class="score-label">Confidence Score</div>
+                    <div class="score-value">${data.confidence_score}%</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Field Scores</div>
+                    <div class="result-value">
+                        <strong>Person Name:</strong> ${(data.field_scores?.person_name || 0).toFixed(2)}%<br>
+                        <strong>Organization:</strong> ${(data.field_scores?.organization || 0).toFixed(2)}%<br>
+                        <strong>Certificate Title:</strong> ${(data.field_scores?.certificate_title || 0).toFixed(2)}%<br>
+                        <strong>Issue Date:</strong> ${(data.field_scores?.issue_date || 0).toFixed(2)}%
+                    </div>
+                </div>
+                ${data.mismatches ? `
+                    <div class="result-box">
+                        <div class="result-label">Mismatches</div>
+                        <div class="result-value">
+                            <pre>${JSON.stringify(data.mismatches, null, 2)}</pre>
+                        </div>
+                    </div>
+                ` : ''}
+                <button onclick="generateReport('${data.certificate_id}')">View Full Report</button>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        function clearVerify() {
+            document.getElementById('certIdInput').value = '';
+            document.getElementById('verifyProgress').style.display = 'none';
+            document.getElementById('verifyResult').style.display = 'none';
+        }
+
+        // Search Functionality
+        async function searchCertificates() {
+            const status = document.getElementById('searchStatus').value;
+            const filename = document.getElementById('searchFilename').value;
+
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (filename) params.append('filename', filename);
+
+            try {
+                const response = await fetch(`${API_BASE}/search?${params}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Search failed');
+                }
+
+                displaySearchResults(data);
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function displaySearchResults(data) {
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.style.display = 'block';
+
+            let html = `<p>Found ${data.total} certificate(s)</p><table>
+                <thead>
+                    <tr>
+                        <th>Certificate ID</th>
+                        <th>Filename</th>
+                        <th>Upload Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            data.results.forEach(cert => {
+                html += `<tr>
+                    <td>${cert.certificate_id}</td>
+                    <td>${cert.filename}</td>
+                    <td>${new Date(cert.upload_timestamp).toLocaleDateString()}</td>
+                    <td>
+                        <button style="padding: 5px 10px; font-size: 12px;" 
+                                onclick="generateReport('${cert.certificate_id}')">
+                            View Report
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearSearch() {
+            document.getElementById('searchStatus').value = '';
+            document.getElementById('searchFilename').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        // Statistics Functionality
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to load statistics');
+                }
+
+                displayStatistics(data.stats);
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        function displayStatistics(stats) {
+            const container = document.getElementById('statsContainer');
+            container.style.display = 'block';
+
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Certificates</div>
+                        <div class="stat-number">${stats.total_certificates}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Verified</div>
+                        <div class="stat-number">${stats.verified}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Partially Verified</div>
+                        <div class="stat-number">${stats.partially_verified}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Not Verified</div>
+                        <div class="stat-number">${stats.not_verified}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Helper Functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showAlert('Copied to clipboard!', 'success');
+        }
+
+        async function generateReport(certId) {
+            try {
+                const response = await fetch(`${API_BASE}/certificate/${certId}/report`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to generate report');
+                }
+
+                console.log('Report:', data.report);
+                showAlert('Report generated! Check console for details.', 'success');
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        // Auto-load stats on page load
+        window.addEventListener('load', () => {
+            console.log('Certificate Verification System loaded');
+        });
+    </script>
+</body>
+</html>

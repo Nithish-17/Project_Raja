@@ -1,0 +1,67 @@
+You are an expert in document intelligence and rule-based NLP.
+
+The current certificate entity extractor incorrectly assigns the
+certificate title (e.g., "CERTIFICATE OF COMPLETION") as the person name.
+
+Fix this by enforcing strict extraction rules and priority.
+
+────────────────────────────────────────
+1. Certificate Title Rules (HIGHEST PRIORITY)
+────────────────────────────────────────
+- Identify certificate title first.
+- Title is defined as:
+  - ALL CAPS lines
+  - Containing keywords like:
+    "CERTIFICATE", "COMPLETION", "ACHIEVEMENT"
+- Once identified, EXCLUDE this line from all other entity candidates.
+
+────────────────────────────────────────
+2. Person Name Rules (STRICT)
+────────────────────────────────────────
+- Person name MUST:
+  - Appear AFTER phrases like:
+    "this is to certify that"
+    "presented to"
+    "awarded to"
+  - Be in Title Case (not ALL CAPS)
+  - Contain only alphabetic characters and spaces
+  - NOT contain keywords:
+    CERTIFICATE, COURSE, COMPLETION
+
+- NEVER use:
+  - ALL CAPS lines
+  - Certificate title
+  - Organization names
+
+────────────────────────────────────────
+3. Organization Rules
+────────────────────────────────────────
+- Extract organization only after phrases:
+  "issued by", "offered by", "authorized by"
+
+────────────────────────────────────────
+4. Date Rules
+────────────────────────────────────────
+- Extract date from lines containing:
+  "Date", "Issued on", "Issue Date"
+
+────────────────────────────────────────
+5. Validation
+────────────────────────────────────────
+- If person name equals certificate title → discard it
+- If person name is missing → fallback to spaCy PERSON entity
+- Ensure no entity is reused across fields
+
+────────────────────────────────────────
+6. Output
+────────────────────────────────────────
+Return a clean dictionary:
+{
+  "person_name": "...",
+  "certificate_title": "...",
+  "organization": "...",
+  "issue_date": "..."
+}
+
+Generate clean, commented Python code and integrate without breaking
+existing API or database logic.
