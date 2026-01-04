@@ -75,8 +75,12 @@ async def upload_certificate(
             certificate_id=certificate_id,
             file_path=file_path,
             file_type=file_type,
-            filename=file.filename
+            filename=file.filename,
+            file_size=len(file_content)
         )
+        # Add file_size to certificate_data if not already present
+        if "file_size" not in certificate_data:
+            certificate_data["file_size"] = len(file_content)
         
         # Store in database
         cert_db = Certificate(
@@ -85,7 +89,7 @@ async def upload_certificate(
             file_path=file_path,
             file_type=file_type,
             file_size=len(file_content),
-            extracted_text=certificate_data.get("extracted_text"),
+            extracted_text=certificate_data.get("extracted_text", ""),
             ocr_confidence=certificate_data.get("ocr_confidence", 0.0),
             ocr_warnings=certificate_data.get("ocr_warnings")
         )
@@ -266,7 +270,7 @@ async def get_certificate_report(
         # Get verification results
         results = db.query(VerificationResult).filter(
             VerificationResult.certificate_id == certificate_id
-        ).all()
+        ).order_by(VerificationResult.verification_timestamp.desc()).all()
         
         # Get verification logs
         logs = db.query(VerificationLog).filter(

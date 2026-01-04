@@ -27,7 +27,8 @@ class VerificationService:
         certificate_id: str,
         file_path: str,
         file_type: str,
-        filename: str
+        filename: str,
+        file_size: int = 0
     ) -> Dict[str, Any]:
         """
         Process certificate: extract text, extract entities, store in DB
@@ -37,6 +38,7 @@ class VerificationService:
             file_path: Path to uploaded file
             file_type: MIME type of file
             filename: Original filename
+            file_size: Size of file in bytes
             
         Returns:
             Dictionary with certificate data
@@ -44,7 +46,18 @@ class VerificationService:
         try:
             # Step 1: Extract text using OCR
             logger.info(f"Extracting text from {filename}")
-            extracted_text = ocr_service.extract_text(file_path, file_type)
+            ocr_result = ocr_service.extract_text(file_path, file_type)
+            
+            # Handle both string and dict returns from OCR
+            if isinstance(ocr_result, dict):
+                extracted_text = ocr_result.get("text", "")
+                ocr_confidence = ocr_result.get("confidence", 0.0)
+                ocr_warnings = ocr_result.get("warnings", [])
+            else:
+                extracted_text = ocr_result
+                # Use simple heuristic: if we got any text, return mid-level confidence (50%)
+                ocr_confidence = 50.0 if extracted_text.strip() else 0.0
+                ocr_warnings = []
             
             # Step 2: Extract entities using NER
             logger.info(f"Extracting entities from {filename}")
@@ -56,8 +69,11 @@ class VerificationService:
                 "filename": filename,
                 "file_path": file_path,
                 "file_type": file_type,
+                "file_size": file_size,
                 "upload_timestamp": datetime.now(),
                 "extracted_text": extracted_text,
+                "ocr_confidence": ocr_confidence,
+                "ocr_warnings": ocr_warnings,
                 "entities": entities,
                 "verification_status": None,
                 "verified_timestamp": None

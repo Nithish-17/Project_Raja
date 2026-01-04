@@ -1,67 +1,108 @@
-You are an expert in document intelligence and rule-based NLP.
+You are a senior backend engineer specializing in OCR pipelines and document intelligence.
 
-The current certificate entity extractor incorrectly assigns the
-certificate title (e.g., "CERTIFICATE OF COMPLETION") as the person name.
+The current Certificate Verification project has the following issues:
+- OCR works inconsistently for image-based PDFs (e.g., hackathon certificates)
+- OCR text is sometimes empty or not propagated downstream
+- File size is shown as N/A in the UI
+- OCR confidence is always N/A
+- Preprocessing exists but is not always applied
+- NER receives empty text, resulting in N/A entities
 
-Fix this by enforcing strict extraction rules and priority.
-
-────────────────────────────────────────
-1. Certificate Title Rules (HIGHEST PRIORITY)
-────────────────────────────────────────
-- Identify certificate title first.
-- Title is defined as:
-  - ALL CAPS lines
-  - Containing keywords like:
-    "CERTIFICATE", "COMPLETION", "ACHIEVEMENT"
-- Once identified, EXCLUDE this line from all other entity candidates.
+Your task is to FIX THE ENTIRE OCR PIPELINE END-TO-END without changing
+API contracts or database schemas.
 
 ────────────────────────────────────────
-2. Person Name Rules (STRICT)
+1. FILE HANDLING & METADATA (MANDATORY)
 ────────────────────────────────────────
-- Person name MUST:
-  - Appear AFTER phrases like:
-    "this is to certify that"
-    "presented to"
-    "awarded to"
-  - Be in Title Case (not ALL CAPS)
-  - Contain only alphabetic characters and spaces
-  - NOT contain keywords:
-    CERTIFICATE, COURSE, COMPLETION
-
-- NEVER use:
-  - ALL CAPS lines
-  - Certificate title
-  - Organization names
+- When a file is uploaded:
+  - Save it locally
+  - Compute file size in bytes using os.path.getsize()
+  - Pass file size through the service layer to the API response
 
 ────────────────────────────────────────
-3. Organization Rules
+2. PDF TEXT EXTRACTION LOGIC (CRITICAL)
 ────────────────────────────────────────
-- Extract organization only after phrases:
-  "issued by", "offered by", "authorized by"
+- For PDF files:
+  1. Attempt direct text extraction (PyPDF2 or similar)
+  2. If extracted text is empty or whitespace:
+     - Convert the PDF to images using pdf2image
+     - Use DPI = 300 or higher
+     - Treat it as an image-based PDF
+  3. OCR MUST run for image-based PDFs (no silent skipping)
 
 ────────────────────────────────────────
-4. Date Rules
+3. IMAGE PREPROCESSING (MANDATORY)
 ────────────────────────────────────────
-- Extract date from lines containing:
-  "Date", "Issued on", "Issue Date"
+Before OCR, ALWAYS preprocess images:
+- Convert to grayscale
+- Apply adaptive thresholding
+- Increase contrast
+- Optional deskew
+Use OpenCV if available; otherwise fallback gracefully.
+
+Ensure the OCR call uses the PREPROCESSED image, not the original.
 
 ────────────────────────────────────────
-5. Validation
+4. OCR EXECUTION (MANDATORY)
 ────────────────────────────────────────
-- If person name equals certificate title → discard it
-- If person name is missing → fallback to spaCy PERSON entity
-- Ensure no entity is reused across fields
+- Explicitly configure pytesseract to use the local Tesseract executable
+  on Windows (e.g., C:\\Program Files\\Tesseract-OCR\\tesseract.exe)
+- Use pytesseract.image_to_string() to extract text
+- Accumulate text across all pages/images
+- NEVER return empty string unless OCR truly failed
+
+Add logs:
+- OCR text length
+- First 200 characters of OCR output
 
 ────────────────────────────────────────
-6. Output
+5. OCR CONFIDENCE CALCULATION (FIX N/A)
 ────────────────────────────────────────
-Return a clean dictionary:
+- Compute OCR confidence using pytesseract.image_to_data()
+- Extract confidence values
+- Compute average confidence
+- Return confidence as a float (or None if unavailable)
+
+────────────────────────────────────────
+6. RETURN VALUES (CRITICAL BUG FIX)
+────────────────────────────────────────
+Ensure the OCR function returns:
 {
-  "person_name": "...",
-  "certificate_title": "...",
-  "organization": "...",
-  "issue_date": "..."
+  "text": extracted_text (string),
+  "ocr_confidence": float or None,
+  "file_size": int
 }
 
-Generate clean, commented Python code and integrate without breaking
-existing API or database logic.
+DO NOT:
+- Log and discard OCR text
+- Return None silently
+- Skip fallback paths
+
+────────────────────────────────────────
+7. ERROR HANDLING & LOGGING
+────────────────────────────────────────
+- Log when OCR fallback is triggered
+- Log when OCR returns empty text
+- Raise meaningful warnings instead of failing silently
+
+────────────────────────────────────────
+8. INTEGRATION REQUIREMENTS
+────────────────────────────────────────
+- Ensure returned OCR text flows correctly to:
+  → ner_service.py
+  → verification_service.py
+  → API response
+  → UI (no more N/A due to missing propagation)
+- Do NOT change existing API response keys
+
+────────────────────────────────────────
+9. EXPECTED OUTCOME
+────────────────────────────────────────
+After this fix:
+- Image-based certificates must no longer show N/A
+- File Size must display correctly
+- OCR Confidence must display when available
+- NER must receive valid text input
+- Hackathon-style certificates must extract text
+
+Generate clean, production-quality, well-commented Python code.

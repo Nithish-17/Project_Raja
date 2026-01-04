@@ -12,7 +12,7 @@ except ImportError:
     np = None
 
 from PIL import Image
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 import io
 
 from utils import get_logger
@@ -28,7 +28,7 @@ class OCRPreprocessor:
         self.quality_threshold = 0.5
         logger.info("OCR Preprocessor initialized")
     
-    def preprocess(self, image_path: str) -> Tuple[Optional, float]:
+    def preprocess(self, image_path: str) -> Tuple[Optional['np.ndarray'], float]:
         """
         Preprocess image for OCR
         
@@ -74,7 +74,7 @@ class OCRPreprocessor:
             logger.error(f"Error preprocessing image: {str(e)}")
             return None, 0.0
     
-    def preprocess_from_bytes(self, image_bytes: bytes) -> Tuple[np.ndarray, float]:
+    def preprocess_from_bytes(self, image_bytes: bytes) -> Tuple[Optional['np.ndarray'], float]:
         """Preprocess image from bytes"""
         try:
             # Convert bytes to numpy array

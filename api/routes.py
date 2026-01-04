@@ -27,6 +27,11 @@ async def upload_certificate(file: UploadFile = File(...)) -> Dict[str, Any]:
     try:
         logger.info(f"Receiving file upload: {file.filename}")
         
+        # Read content to capture file size, then reset pointer for saving
+        file_bytes = await file.read()
+        file_size = len(file_bytes)
+        file.file.seek(0)
+        
         # Save file and get certificate ID
         certificate_id, file_path, file_type = await upload_service.save_file(file)
         
@@ -35,8 +40,13 @@ async def upload_certificate(file: UploadFile = File(...)) -> Dict[str, Any]:
             certificate_id=certificate_id,
             file_path=file_path,
             file_type=file_type,
-            filename=file.filename
+            filename=file.filename,
+            file_size=file_size
         )
+        
+        # Ensure file_size included in response
+        if "file_size" not in certificate_data:
+            certificate_data["file_size"] = file_size
         
         # Return response
         response = {
@@ -44,6 +54,8 @@ async def upload_certificate(file: UploadFile = File(...)) -> Dict[str, Any]:
             "message": "Certificate uploaded and processed successfully",
             "certificate_id": certificate_id,
             "filename": file.filename,
+            "file_size": certificate_data.get("file_size"),
+            "ocr_confidence": certificate_data.get("ocr_confidence", 0.0),
             "extracted_entities": certificate_data.get("entities"),
             "upload_timestamp": certificate_data.get("upload_timestamp").isoformat()
         }
