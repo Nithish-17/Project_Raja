@@ -9,6 +9,7 @@ from PIL import Image
 from PyPDF2 import PdfReader
 from pdf2image import convert_from_path
 import platform
+import os
 
 from utils import get_logger
 from ocr.preprocessor import ocr_preprocessor
@@ -20,19 +21,35 @@ logger = get_logger("ocr_service")
 TESSERACT_AVAILABLE = False
 if platform.system() == "Windows":
     # Configure pytesseract to use system tesseract executable on Windows
-    # Update this path if tesseract is installed in a different location
-    pytesseract.pytesseract.pytesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    tesseract_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+    # Also add to PATH for pytesseract to find it
+    tesseract_dir = os.path.dirname(tesseract_path)
+    if tesseract_dir not in os.environ.get('PATH', ''):
+        os.environ['PATH'] = tesseract_dir + os.pathsep + os.environ.get('PATH', '')
+    
+    # Add Poppler to PATH for pdf2image
+    poppler_path = r'C:\poppler\poppler-24.08.0\Library\bin'
+    if os.path.exists(poppler_path) and poppler_path not in os.environ.get('PATH', ''):
+        os.environ['PATH'] = poppler_path + os.pathsep + os.environ.get('PATH', '')
+    
     try:
-        pytesseract.get_tesseract_version()
+        version = pytesseract.get_tesseract_version()
         TESSERACT_AVAILABLE = True
-    except:
+        print(f"[OCR] Tesseract detected: {version}")
+        logger.info(f"Tesseract found: version {version}")
+    except Exception as e:
         TESSERACT_AVAILABLE = False
+        print(f"[OCR] Tesseract check failed: {e}")
+        logger.debug(f"Tesseract not found: {e}")
 else:
     try:
-        pytesseract.get_tesseract_version()
+        version = pytesseract.get_tesseract_version()
         TESSERACT_AVAILABLE = True
-    except:
+        logger.info(f"Tesseract found: version {version}")
+    except Exception as e:
         TESSERACT_AVAILABLE = False
+        logger.debug(f"Tesseract not found: {e}")
 
 
 class OCRService:

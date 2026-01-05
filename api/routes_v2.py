@@ -55,7 +55,7 @@ async def upload_certificate(
         )
     
     try:
-        # Validate file
+        # Validate file - READ ONCE and reuse content
         file_content = await file.read()
         is_valid, error_msg = security_validator.validate_file(
             file.filename,
@@ -65,6 +65,9 @@ async def upload_certificate(
         
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Reset file pointer before saving
+        await file.seek(0)
         
         # Save file
         certificate_id, file_path, file_type = await upload_service.save_file(file)
